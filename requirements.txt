@@ -1,0 +1,5 @@
+torch
+grpcio
+grpcio-tools
+betterproto[compiler]
+safetensors
