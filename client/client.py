@@ -6,7 +6,7 @@ from p2p_module_calling.server.module_servicer import ModuleServiceServicer
 from p2p_module_calling.utils import serialize_tensors, deserialize_tensors
 
 
-from module_service import TestRequest, TestResponse
+from p2p_module_calling.module_service import TestRequest, TestResponse
 
 
 import torch
