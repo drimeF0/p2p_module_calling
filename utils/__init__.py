@@ -1,1 +1,1 @@
-from p2p_module_calling.utils.tensor_utils import deserialize_tensors, serialize_tensors
+from p2p_module_calling.utils.tensor_utils import deserialize_tensors, serialize_tensors, DEFAULT_ZERO_SAFETENSOR_BYTES
