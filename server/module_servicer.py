@@ -5,7 +5,7 @@ from p2p_module_calling.module_service import (
 
 from p2p_module_calling.utils import serialize_tensors, deserialize_tensors, DEFAULT_ZERO_SAFETENSOR_BYTES
 
-from hivemind.p2p.servicers import ServicerBase, P2PContext #ServicerBase - Base class for P2P RPC servicers (e.g. DHT, Remote Module Calling, MoE server). The interface mimics gRPC servicers.
+from hivemind.p2p.servicer import ServicerBase, P2PContext #ServicerBase - Base class for P2P RPC servicers (e.g. DHT, Remote Module Calling, MoE server). The interface mimics gRPC servicers.
 from hivemind.p2p.p2p_daemon import DEFAULT_MAX_MSG_SIZE, P2P
 from hivemind.utils.asyncio import switch_to_uvloop #Switch to faster uvloop event loop, if not available installing it
 from hivemind.dht import DHT
