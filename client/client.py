@@ -21,7 +21,7 @@ def get_server_stub(p2p: P2P, server_peer_id: PeerID) -> StubBase:
 class Client:
 
     def __init__(self, p2p: P2P, server_peer_id: PeerID):
-        self.stub = get_server_stub(p2p,server_peer_id)
+        self.stub = get_server_stub(p2p, server_peer_id)
     
 
     async def test(self, data: Dict[str,torch.Tensor]) -> TestResponse:

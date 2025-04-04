@@ -60,6 +60,8 @@ class ModuleServiceServicer(mp.context.ForkProcess, ServicerBase):
                 asyncio_loop.run_until_complete(_run())
             except KeyboardInterrupt:
                 pass
+
+    
     def run_in_background(self, await_ready: bool = True, timeout: Optional[float] = None) -> None:
         """
         Starts ConnectionHandler in a background process. If :await_ready:, this method will wait until
