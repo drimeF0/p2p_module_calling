@@ -3,7 +3,7 @@ from hivemind.p2p import P2P, PeerID, StubBase
 
 from p2p_module_calling.server.module_servicer import ModuleServiceServicer
 
-from p2p_module_calling.utils import serialize_tensor, deserialize_tensor
+from p2p_module_calling.utils import serialize_tensors, deserialize_tensors
 
 
 from module_service import TestRequest, TestResponse
@@ -25,7 +25,7 @@ class Client:
     
 
     async def test(self, data: Dict[str,torch.Tensor]) -> TestResponse:
-        data_bytes: bytes = deserialize_tensor(data)
+        data_bytes: bytes = deserialize_tensors(data)
         message = TestRequest(input_tensor_bytes=data_bytes)
         result: TestResponse = await self.stub.rpc_call_module(message)
-        return serialize_tensor(result.output_tensor_bytes)
+        return serialize_tensors(result.output_tensor_bytes)
