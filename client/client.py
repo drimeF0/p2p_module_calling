@@ -28,4 +28,4 @@ class Client:
         data_bytes: bytes = deserialize_tensor(data)
         message = TestRequest(input_tensor_bytes=data_bytes)
         result: TestResponse = await self.stub.rpc_call_module(message)
-        return result
+        return serialize_tensor(result.output_tensor_bytes)
