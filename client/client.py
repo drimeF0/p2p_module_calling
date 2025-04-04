@@ -1,15 +1,31 @@
-from urllib import response
-from grpclib.client import Channel
+from hivemind import DHT
+from hivemind.p2p import P2P, PeerID, StubBase
+
+from p2p_module_calling.server.module_servicer import ModuleServiceServicer
+
+from p2p_module_calling.utils import serialize_tensor, deserialize_tensor
+
+
+from module_service import TestRequest, TestResponse
+
+
 import torch
-import safetensors.torch
-from p2p_module_calling.proto import module_service 
 
-import asyncio
+from typing import Dict
 
-async def run():
-    channel = Channel('localhost', 50051)
-    stub = module_service.ModuleServiceStub(channel)
-    response = await stub.register_module(module_service.ModuleRegistrationRequest(module_id='my_module', module_bytes=b'my_module_bytes'))
-    print(f"Module registered: {response.success}")
-if __name__ == '__main__':
-    asyncio.run(run())
+
+def get_server_stub(p2p: P2P, server_peer_id: PeerID) -> StubBase:
+    return ModuleServiceServicer.get_stub(p2p, server_peer_id)
+
+
+class Client:
+
+    def __init__(self, p2p: P2P, server_peer_id: PeerID):
+        self.stub = get_server_stub(p2p,server_peer_id)
+    
+
+    async def test(self, data: Dict[str,torch.Tensor]) -> TestResponse:
+        data_bytes: bytes = deserialize_tensor(data)
+        message = TestRequest(input_tensor_bytes=data_bytes)
+        result: TestResponse = await self.stub.rpc_call_module(message)
+        return result

@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
     Dict,
-    List,
     Optional,
 )
 
@@ -23,116 +22,28 @@ if TYPE_CHECKING:
 
 
 @dataclass(eq=False, repr=False)
-class ModuleRegistrationRequest(betterproto.Message):
-    module_id: str = betterproto.string_field(1)
+class TestRequest(betterproto.Message):
+    input_tensor_bytes: bytes = betterproto.bytes_field(1)
 
 
 @dataclass(eq=False, repr=False)
-class ModuleDeleteRequest(betterproto.Message):
-    module_id: str = betterproto.string_field(1)
-
-
-@dataclass(eq=False, repr=False)
-class ModuleCallRequest(betterproto.Message):
-    module_id: str = betterproto.string_field(1)
-    input_tensor_bytes: bytes = betterproto.bytes_field(2)
-
-
-@dataclass(eq=False, repr=False)
-class ListModulesRequest(betterproto.Message):
-    filter: str = betterproto.string_field(1)
-
-
-@dataclass(eq=False, repr=False)
-class ModuleRegistrationResponse(betterproto.Message):
-    success: bool = betterproto.bool_field(1)
-    error_message: str = betterproto.string_field(2)
-
-
-@dataclass(eq=False, repr=False)
-class ModuleDeleteResponse(betterproto.Message):
-    success: bool = betterproto.bool_field(1)
-    error_message: str = betterproto.string_field(2)
-
-
-@dataclass(eq=False, repr=False)
-class ModuleCallResponse(betterproto.Message):
-    success: bool = betterproto.bool_field(1)
-    output_tensor_bytes: bytes = betterproto.bytes_field(2)
-    error_message: str = betterproto.string_field(3)
-
-
-@dataclass(eq=False, repr=False)
-class ListModulesResponse(betterproto.Message):
-    success: bool = betterproto.bool_field(1)
-    module_ids: List[str] = betterproto.string_field(2)
-    error_message: str = betterproto.string_field(3)
+class TestResponse(betterproto.Message):
+    output_tensor_bytes: bytes = betterproto.bytes_field(1)
 
 
 class ModuleServiceStub(betterproto.ServiceStub):
-    async def register_module(
+    async def test_call(
         self,
-        module_registration_request: "ModuleRegistrationRequest",
+        test_request: "TestRequest",
         *,
         timeout: Optional[float] = None,
         deadline: Optional["Deadline"] = None,
         metadata: Optional["MetadataLike"] = None
-    ) -> "ModuleRegistrationResponse":
+    ) -> "TestResponse":
         return await self._unary_unary(
-            "/module_service.ModuleService/register_module",
-            module_registration_request,
-            ModuleRegistrationResponse,
-            timeout=timeout,
-            deadline=deadline,
-            metadata=metadata,
-        )
-
-    async def call_module(
-        self,
-        module_call_request: "ModuleCallRequest",
-        *,
-        timeout: Optional[float] = None,
-        deadline: Optional["Deadline"] = None,
-        metadata: Optional["MetadataLike"] = None
-    ) -> "ModuleCallResponse":
-        return await self._unary_unary(
-            "/module_service.ModuleService/call_module",
-            module_call_request,
-            ModuleCallResponse,
-            timeout=timeout,
-            deadline=deadline,
-            metadata=metadata,
-        )
-
-    async def delete_module(
-        self,
-        module_delete_request: "ModuleDeleteRequest",
-        *,
-        timeout: Optional[float] = None,
-        deadline: Optional["Deadline"] = None,
-        metadata: Optional["MetadataLike"] = None
-    ) -> "ModuleDeleteResponse":
-        return await self._unary_unary(
-            "/module_service.ModuleService/delete_module",
-            module_delete_request,
-            ModuleDeleteResponse,
-            timeout=timeout,
-            deadline=deadline,
-            metadata=metadata,
-        )
-
-    async def list_modules(
-        self,
-        list_modules_request: "ListModulesRequest",
-        *,
-        timeout: Optional[float] = None,
-        deadline: Optional["Deadline"] = None,
-        metadata: Optional["MetadataLike"] = None
-    ) -> "ListModulesResponse":
-        return await self._unary_unary(
-            "/module_service.ModuleService/list_modules",
-            list_modules_request,
-            ListModulesResponse,
+            "/module_service.ModuleService/test_call",
+            test_request,
+            TestResponse,
             timeout=timeout,
             deadline=deadline,
             metadata=metadata,
@@ -141,79 +52,22 @@ class ModuleServiceStub(betterproto.ServiceStub):
 
 class ModuleServiceBase(ServiceBase):
 
-    async def register_module(
-        self, module_registration_request: "ModuleRegistrationRequest"
-    ) -> "ModuleRegistrationResponse":
+    async def test_call(self, test_request: "TestRequest") -> "TestResponse":
         raise grpclib.GRPCError(grpclib.const.Status.UNIMPLEMENTED)
 
-    async def call_module(
-        self, module_call_request: "ModuleCallRequest"
-    ) -> "ModuleCallResponse":
-        raise grpclib.GRPCError(grpclib.const.Status.UNIMPLEMENTED)
-
-    async def delete_module(
-        self, module_delete_request: "ModuleDeleteRequest"
-    ) -> "ModuleDeleteResponse":
-        raise grpclib.GRPCError(grpclib.const.Status.UNIMPLEMENTED)
-
-    async def list_modules(
-        self, list_modules_request: "ListModulesRequest"
-    ) -> "ListModulesResponse":
-        raise grpclib.GRPCError(grpclib.const.Status.UNIMPLEMENTED)
-
-    async def __rpc_register_module(
-        self,
-        stream: "grpclib.server.Stream[ModuleRegistrationRequest, ModuleRegistrationResponse]",
+    async def __rpc_test_call(
+        self, stream: "grpclib.server.Stream[TestRequest, TestResponse]"
     ) -> None:
         request = await stream.recv_message()
-        response = await self.register_module(request)
-        await stream.send_message(response)
-
-    async def __rpc_call_module(
-        self, stream: "grpclib.server.Stream[ModuleCallRequest, ModuleCallResponse]"
-    ) -> None:
-        request = await stream.recv_message()
-        response = await self.call_module(request)
-        await stream.send_message(response)
-
-    async def __rpc_delete_module(
-        self, stream: "grpclib.server.Stream[ModuleDeleteRequest, ModuleDeleteResponse]"
-    ) -> None:
-        request = await stream.recv_message()
-        response = await self.delete_module(request)
-        await stream.send_message(response)
-
-    async def __rpc_list_modules(
-        self, stream: "grpclib.server.Stream[ListModulesRequest, ListModulesResponse]"
-    ) -> None:
-        request = await stream.recv_message()
-        response = await self.list_modules(request)
+        response = await self.test_call(request)
         await stream.send_message(response)
 
     def __mapping__(self) -> Dict[str, grpclib.const.Handler]:
         return {
-            "/module_service.ModuleService/register_module": grpclib.const.Handler(
-                self.__rpc_register_module,
+            "/module_service.ModuleService/test_call": grpclib.const.Handler(
+                self.__rpc_test_call,
                 grpclib.const.Cardinality.UNARY_UNARY,
-                ModuleRegistrationRequest,
-                ModuleRegistrationResponse,
-            ),
-            "/module_service.ModuleService/call_module": grpclib.const.Handler(
-                self.__rpc_call_module,
-                grpclib.const.Cardinality.UNARY_UNARY,
-                ModuleCallRequest,
-                ModuleCallResponse,
-            ),
-            "/module_service.ModuleService/delete_module": grpclib.const.Handler(
-                self.__rpc_delete_module,
-                grpclib.const.Cardinality.UNARY_UNARY,
-                ModuleDeleteRequest,
-                ModuleDeleteResponse,
-            ),
-            "/module_service.ModuleService/list_modules": grpclib.const.Handler(
-                self.__rpc_list_modules,
-                grpclib.const.Cardinality.UNARY_UNARY,
-                ListModulesRequest,
-                ListModulesResponse,
+                TestRequest,
+                TestResponse,
             ),
         }
