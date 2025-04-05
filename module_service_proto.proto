@@ -16,11 +16,12 @@ message ModuleForwardResponse {
 
 message ModuleBackwardRequest {
     string module_id = 1;
-    bytes input_tensor_bytes = 2;
+    optional bytes input_tensor_bytes = 2;
+    optional bytes grad_tensor_bytes = 3;
 }
 
 message ModuleBackwardResponse {
     bool success = 1;
-    bytes output_tensor_bytes = 2;
+    bytes grad_tensor_bytes = 2;
     optional string error_message = 3;
 }
