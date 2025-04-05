@@ -6,7 +6,9 @@ from p2p_module_calling.server.module_servicer import ModuleServiceServicer
 from p2p_module_calling.utils import serialize_tensors, deserialize_tensors
 
 
-from p2p_module_calling.module_service import TestRequest, TestResponse
+from p2p_module_calling.module_service import (
+    ModuleForwardRequest, ModuleForwardResponse
+)
 
 
 import torch
@@ -24,8 +26,9 @@ class Client:
         self.stub = get_server_stub(p2p, server_peer_id)
     
 
-    async def test(self, data: Dict[str,torch.Tensor]) -> TestResponse:
+    def forward(self, module_id: str, data: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         data_bytes: bytes = deserialize_tensors(data)
-        message = TestRequest(input_tensor_bytes=data_bytes)
-        result: TestResponse = await self.stub.rpc_call_module(message)
+        message = ModuleForwardRequest(module_id=module_id, input_tensor_bytes=data_bytes)
+        result: ModuleForwardResponse = self.stub.rpc_forward_module(message)
         return serialize_tensors(result.output_tensor_bytes)
+
