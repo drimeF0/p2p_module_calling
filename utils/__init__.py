@@ -1,1 +1,2 @@
 from p2p_module_calling.utils.tensor_utils import deserialize_tensors, serialize_tensors, DEFAULT_ZERO_SAFETENSOR_BYTES
+from p2p_module_calling.utils.bytes_utils import split_bytes

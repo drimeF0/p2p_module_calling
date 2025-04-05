@@ -2,18 +2,13 @@ syntax = "proto3";
 
 package module_service;
 
-service ModuleService {
-    rpc forward_module (ModuleCallRequest) returns (ModuleCallResponse);
-    rpc backward_module (ModuleBackwardRequest) returns (ModuleBackwardRequest);
-}
 
-
-message ModuleCallRequest {
+message ModuleForwardRequest {
     string module_id = 1;
     bytes input_tensor_bytes = 2;
 }
 
-message ModuleCallResponse {
+message ModuleForwardResponse {
     bool success = 1;
     bytes output_tensor_bytes = 2;
     optional string error_message = 3;

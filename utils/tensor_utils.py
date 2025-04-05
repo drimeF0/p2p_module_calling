@@ -11,6 +11,7 @@ def serialize_tensors(tensor_bytes: bytes) -> Dict[str, torch.Tensor]:
     return safetensors.torch.load(tensor_bytes)
 
 
+
 DEFAULT_ZERO_SAFETENSOR_BYTES = deserialize_tensors(
     {"deadbeef": torch.Tensor(1337)}
 )

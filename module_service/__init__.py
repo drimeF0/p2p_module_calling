@@ -4,70 +4,32 @@
 # This file has been @generated
 
 from dataclasses import dataclass
-from typing import (
-    TYPE_CHECKING,
-    Dict,
-    Optional,
-)
+from typing import Optional
 
 import betterproto
-import grpclib
-from betterproto.grpc.grpclib_server import ServiceBase
-
-
-if TYPE_CHECKING:
-    import grpclib.server
-    from betterproto.grpc.grpclib_client import MetadataLike
-    from grpclib.metadata import Deadline
 
 
 @dataclass(eq=False, repr=False)
-class TestRequest(betterproto.Message):
-    input_tensor_bytes: bytes = betterproto.bytes_field(1)
+class ModuleForwardRequest(betterproto.Message):
+    module_id: str = betterproto.string_field(1)
+    input_tensor_bytes: bytes = betterproto.bytes_field(2)
 
 
 @dataclass(eq=False, repr=False)
-class TestResponse(betterproto.Message):
-    output_tensor_bytes: bytes = betterproto.bytes_field(1)
+class ModuleForwardResponse(betterproto.Message):
+    success: bool = betterproto.bool_field(1)
+    output_tensor_bytes: bytes = betterproto.bytes_field(2)
+    error_message: Optional[str] = betterproto.string_field(3, optional=True)
 
 
-class ModuleServiceStub(betterproto.ServiceStub):
-    async def test_call(
-        self,
-        test_request: "TestRequest",
-        *,
-        timeout: Optional[float] = None,
-        deadline: Optional["Deadline"] = None,
-        metadata: Optional["MetadataLike"] = None
-    ) -> "TestResponse":
-        return await self._unary_unary(
-            "/module_service.ModuleService/test_call",
-            test_request,
-            TestResponse,
-            timeout=timeout,
-            deadline=deadline,
-            metadata=metadata,
-        )
+@dataclass(eq=False, repr=False)
+class ModuleBackwardRequest(betterproto.Message):
+    module_id: str = betterproto.string_field(1)
+    input_tensor_bytes: bytes = betterproto.bytes_field(2)
 
 
-class ModuleServiceBase(ServiceBase):
-
-    async def test_call(self, test_request: "TestRequest") -> "TestResponse":
-        raise grpclib.GRPCError(grpclib.const.Status.UNIMPLEMENTED)
-
-    async def __rpc_test_call(
-        self, stream: "grpclib.server.Stream[TestRequest, TestResponse]"
-    ) -> None:
-        request = await stream.recv_message()
-        response = await self.test_call(request)
-        await stream.send_message(response)
-
-    def __mapping__(self) -> Dict[str, grpclib.const.Handler]:
-        return {
-            "/module_service.ModuleService/test_call": grpclib.const.Handler(
-                self.__rpc_test_call,
-                grpclib.const.Cardinality.UNARY_UNARY,
-                TestRequest,
-                TestResponse,
-            ),
-        }
+@dataclass(eq=False, repr=False)
+class ModuleBackwardResponse(betterproto.Message):
+    success: bool = betterproto.bool_field(1)
+    output_tensor_bytes: bytes = betterproto.bytes_field(2)
+    error_message: Optional[str] = betterproto.string_field(3, optional=True)

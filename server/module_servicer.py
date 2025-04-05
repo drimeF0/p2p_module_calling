@@ -1,9 +1,12 @@
+from numpy import bytes_
 from p2p_module_calling.module_service import (
-    ModuleCallRequest,
-    ModuleCallResponse
+    ModuleForwardRequest,
+    ModuleForwardResponse,
+    ModuleBackwardRequest,
+    ModuleBackwardResponse,
 )
 
-from p2p_module_calling.utils import serialize_tensors, deserialize_tensors, DEFAULT_ZERO_SAFETENSOR_BYTES
+from p2p_module_calling.utils import serialize_tensors, deserialize_tensors, DEFAULT_ZERO_SAFETENSOR_BYTES, split_bytes
 
 from hivemind.p2p import ServicerBase, P2PContext #ServicerBase - Base class for P2P RPC servicers (e.g. DHT, Remote Module Calling, MoE server). The interface mimics gRPC servicers.
 from hivemind.p2p.p2p_daemon import DEFAULT_MAX_MSG_SIZE, P2P
@@ -16,7 +19,7 @@ import asyncio
 
 import torch
 
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, AsyncIterator
 
 import multiprocessing as mp
 
@@ -89,11 +92,52 @@ class ModuleServiceServicer(mp.context.ForkProcess, ServicerBase):
         else:
             logger.warning("ConnectionHandler shutdown had no effect, the process is already dead")
     
-    async def rpc_call_module(self, request: ModuleCallRequest, context: P2PContext) -> ModuleCallResponse:
+    async def forward_module(self, request: ModuleForwardRequest, context: P2PContext) -> ModuleForwardResponse:
         module: Optional[torch.nn.Module] = self.modules.get(request.module_id)
         if module is None:
-            return ModuleCallResponse(error="Module not found", success=False, output_tensor_bytes=DEFAULT_ZERO_SAFETENSOR_BYTES)
+            return ModuleForwardResponse(error="Module not found", success=False, output_tensor_bytes=DEFAULT_ZERO_SAFETENSOR_BYTES)
         input_tensors: Dict[str, torch.Tensor] = serialize_tensors(request.input_tensor_bytes)
         output_tensors: Dict[str, torch.Tensor] = module(**input_tensors)
         output_tensor_bytes: bytes = deserialize_tensors(output_tensors)
-        return ModuleCallResponse(success=True, output_tensor_bytes=output_tensor_bytes)
+        return ModuleForwardResponse(success=True, output_tensor_bytes=output_tensor_bytes)
+    
+
+    async def forward_module_stream(self, requests: AsyncIterator[ModuleForwardRequest], context: P2PContext) -> AsyncIterator[ModuleForwardResponse]:
+        bytes_buffer = bytearray()
+        async for message in requests:
+            byte_data = message.input_tensor_bytes
+            bytes_buffer.append(byte_data)
+        tensor_dict: Dict[str,torch.Tensor] = serialize_tensors(bytes(bytes_buffer))
+        module_id = message.module_id
+        module = self.modules.get(module_id)
+        if module is None:
+            yield ModuleForwardResponse(error="Module not found", success=False, output_tensor_bytes=DEFAULT_ZERO_SAFETENSOR_BYTES)
+        else:
+            output_tensors: Dict[str, torch.Tensor] = module(**tensor_dict)
+            output_tensor_bytes: bytes = deserialize_tensors(output_tensors)
+            tensor_chunks: List[bytes] = split_bytes(output_tensor_bytes)
+            for chunk in tensor_chunks:
+                yield ModuleForwardResponse(success=True, output_tensor_bytes=chunk)
+
+
+    # async def backward_module(self, request: ModuleBackwardRequest, context: P2PContext) -> ModuleBackwardResponse:
+    #     module: Optional[torch.nn.Module] = self.modules.get(request.module_id)
+    #     if module in None:
+    #         return ModuleBackwardResponse(error="Module not found", success=False, output_tensor_bytes=DEFAULT_ZERO_SAFETENSOR_BYTES)
+    
+    # async def backward_module_stream(self, requests: AsyncIterator[ModuleBackwardRequest], context: P2PContext) -> AsyncIterator[ModuleBackwardResponse]:
+    #     bytes_buffer = bytearray()
+    #     async for message in requests:
+    #         byte_data = message.input_tensor_bytes
+    #         bytes_buffer.append(byte_data)
+    #     tensor_dict: Dict[str,torch.Tensor] = serialize_tensors(bytes(bytes_buffer))
+    #     module_id = message.module_id
+    #     module = self.modules.get(module_id)
+    #     if module is None:
+    #         yield ModuleBackwardResponse(error="Module not found", success=False, output_tensor_bytes=DEFAULT_ZERO_SAFETENSOR_BYTES)
+    #         return
+    #     output_tensors: Dict[str, torch.Tensor] = module(**tensor_dict)
+    #     output_tensor_bytes: bytes = deserialize_tensors(output_tensors)
+    #     tensor_chunks = split_bytes(output_tensor_bytes)
+    #     for chunk in tensor_chunks:
+    #         yield ModuleBackwardResponse(success=True, output_tensor_bytes=chunk)
