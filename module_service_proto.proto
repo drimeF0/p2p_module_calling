@@ -3,12 +3,29 @@ syntax = "proto3";
 package module_service;
 
 service ModuleService {
-    rpc test_call(TestRequest) returns (TestResponse);
-}
-message TestRequest {
-    bytes input_tensor_bytes = 1;
+    rpc forward_module (ModuleCallRequest) returns (ModuleCallResponse);
+    rpc backward_module (ModuleBackwardRequest) returns (ModuleBackwardRequest);
 }
 
-message TestResponse {
-    bytes output_tensor_bytes = 1;
+
+message ModuleCallRequest {
+    string module_id = 1;
+    bytes input_tensor_bytes = 2;
+}
+
+message ModuleCallResponse {
+    bool success = 1;
+    bytes output_tensor_bytes = 2;
+    optional string error_message = 3;
+}
+
+message ModuleBackwardRequest {
+    string module_id = 1;
+    bytes input_tensor_bytes = 2;
+}
+
+message ModuleBackwardResponse {
+    bool success = 1;
+    bytes output_tensor_bytes = 2;
+    optional string error_message = 3;
 }
