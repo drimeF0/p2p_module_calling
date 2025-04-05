@@ -1,5 +1,6 @@
 torch
 grpcio
 grpcio-tools
-betterproto[compiler]
+--pre betterproto
+--pre betterproto[compiler]
 safetensors
