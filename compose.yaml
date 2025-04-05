@@ -1,0 +1,15 @@
+services:
+  app:
+    build:
+      context: .
+    restart: unless-stopped
+    init: true
+    ports:
+      - "8000:8000"
+    depends_on: []
+    # env_file: ./.env  # Uncomment if .env file exists
+    networks:
+      - app_network
+networks:
+  app_network:
+    driver: bridge

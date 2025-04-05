@@ -1,4 +1,5 @@
-torch
+torch+cpu
+git+https://github.com/learning-at-home/hivemind.git
 grpcio
 grpcio-tools
 --pre betterproto
