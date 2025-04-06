@@ -38,4 +38,4 @@ ENV PATH="/app/.venv/bin:$PATH"
 EXPOSE 8000
 
 # Set default command
-CMD ["python", "examples/server_side.py"]
+CMD ["python", "-m examples.server_side"]
