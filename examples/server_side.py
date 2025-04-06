@@ -45,3 +45,5 @@ modules = {
 servicer = ModuleServiceServicer(table, modules)
 
 servicer.run()
+print("Ready to serve!")
+servicer.wait_until_ready()
