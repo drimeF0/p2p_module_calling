@@ -44,18 +44,18 @@ class ModuleServicer(ServicerBase):
     def run(self):
         torch.set_num_threads(1)    
         asyncio_loop = asyncio.new_event_loop()
-        stop = asyncio.Event()
-    
-        async def _run():
-            try:
-                self._p2p = await self.dht.replicate_p2p()
-                await self.add_p2p_handlers(self._p2p, balanced=True)
-            except Exception as e:
-                print(e.with_traceback())
         try:
-            asyncio_loop.run_until_complete(_run())
+            asyncio_loop.run_until_complete(self.async_run())
         except KeyboardInterrupt:
             asyncio_loop.run_until_complete(self.remove_p2p_handlers(self._p2p))
+    
+
+    async def async_run(self):
+        try:
+            self._p2p = await self.dht.replicate_p2p()
+            await self.add_p2p_handlers(self._p2p, balanced=True)
+        except Exception as e:
+            print(e.with_traceback())
 
 
     def _backward(self, tensors: Dict[str, torch.Tensor], grad_tensors: Dict[str, torch.Tensor]):
