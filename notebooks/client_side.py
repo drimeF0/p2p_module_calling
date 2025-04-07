@@ -10,23 +10,27 @@ import torch
 
 import asyncio
 
-peers =  [
-    # IPv4 DNS addresses
-    "/ip4/159.89.214.152/tcp/31337/p2p/QmedTaZXmULqwspJXz44SsPZyTNKxhnnFvYRajfH7MGhCY"
-]
 
-table = DHT(
-    host_maddrs=["/ip4/0.0.0.0/tcp/0", "/ip4/0.0.0.0/udp/0/quic"],
-    initial_peers=peers,
-    start=True,
-    use_relay=True,
-    use_auto_relay=True
-)
+async def main():
+    peers =  [
+        # IPv4 DNS addresses
+        "/ip4/159.89.214.152/tcp/31337/p2p/QmedTaZXmULqwspJXz44SsPZyTNKxhnnFvYRajfH7MGhCY"
+    ]
+    
+    table = DHT(
+        host_maddrs=["/ip4/0.0.0.0/tcp/0", "/ip4/0.0.0.0/udp/0/quic"],
+        initial_peers=peers,
+        start=True,
+        use_relay=True,
+        use_auto_relay=True
+    )
+    
+    p2p = await table.replicate_p2p()
+    
+    
+    peer_id_bytes = table.get("drime_peers").value
+    peer = PeerID(peer_id_bytes)
+    client  = Client(p2p,peer)
+    print(await client.test({"x":torch.randn(3,10)}))
 
-p2p = asyncio.run(table.replicate_p2p())
-
-
-peer_id_bytes = table.get("drime_peers").value
-peer = PeerID(peer_id_bytes)
-client  = Client(p2p,peer)
-print(asyncio.run(client.test({"x":torch.randn(3,10)})))
+asyncio.run(main())
