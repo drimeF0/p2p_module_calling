@@ -24,7 +24,6 @@ peers =  [
 ]
 
 table = DHT(
-    host_maddrs=["/ip4/0.0.0.0/tcp/0", "/ip4/0.0.0.0/udp/0/quic"],
     initial_peers=peers,
     start=True,
     use_relay=True,
