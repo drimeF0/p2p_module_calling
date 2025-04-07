@@ -32,7 +32,7 @@ class Client:
 
     def __init__(self, p2p: P2P, server_peer_id: PeerID):
         self.stub = get_server_stub(p2p, server_peer_id)
-        self.loop = asyncio.get_event_loop()
+        self.loop = asyncio.new_event_loop()
     
 
     def forward(self, module_id: str, data: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
