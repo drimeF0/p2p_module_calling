@@ -1,1 +1,1 @@
-from p2p_module_calling.server.module_servicer import ModuleServiceServicer
+from p2p_module_calling.server.module_servicer import ModuleServicer

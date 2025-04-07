@@ -1,7 +1,7 @@
 from hivemind import DHT, get_dht_time
 import time
 
-from p2p_module_calling.server import ModuleServiceServicer
+from p2p_module_calling.server import ModuleServicer
 import asyncio
 
 import torch
