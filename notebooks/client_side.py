@@ -29,4 +29,4 @@ p2p = asyncio.run(table.replicate_p2p())
 peer_id_bytes = table.get("drime_peers").value
 peer = PeerID(peer_id_bytes)
 client  = Client(p2p,peer)
-print(asyncio.run(client.tests({"x":torch.randn(3,10)})))
+print(asyncio.run(client.test({"x":torch.randn(3,10)})))
