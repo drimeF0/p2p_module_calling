@@ -17,7 +17,8 @@ from torch.autograd.function import once_differentiable
 
 from typing import Dict, List, Union, Optional, Tuple, Any
 
-DUMMY = torch.Tensor([0], require_grad=True)
+DUMMY = torch.Tensor([0])
+DUMMY.requires_grad = True
 
 def get_server_stub(p2p: P2P, server_peer_id: PeerID) -> StubBase:
     return ModuleServicer.get_stub(p2p, server_peer_id)
