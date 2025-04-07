@@ -45,3 +45,6 @@ modules = {
 servicer = ModuleServiceServicer(table)
 
 servicer.run()
+
+while True:
+    time.sleep(1)
