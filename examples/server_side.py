@@ -31,4 +31,7 @@ print(my_peer_id.to_string())
 model = TestModel()
 models = {"test_model": model}
 servicer = ModuleServicer(dht, models)
-asyncio.wait_for(servicer.run())
+servicer.run()
+
+while True:
+    time.sleep(1)
