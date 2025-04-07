@@ -49,6 +49,10 @@ class RemoteModule(torch.nn.Module):
         super().__init__()
         self.client = client
         self.module_id = module_id
+    
+
+    def forward(self, x: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+        return _RemoteModuleCall.apply(DUMMY, self.module_id, self.client, x)
 
 class _RemoteModuleCall(torch.autograd.Function): #https://github.com/learning-at-home/hivemind/blob/master/hivemind/moe/client/expert.py#L194
     """Internal autograd-friendly call of a remote module. For applications, use RemoteExpert instead."""
