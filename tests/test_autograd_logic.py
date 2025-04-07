@@ -33,6 +33,8 @@ def server_main():
     model = TestModel()
     models = {"test_model": model}
     servicer = ModuleServicer(dht, models)
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     servicer.run()
 
 def client_main():
