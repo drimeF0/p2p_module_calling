@@ -2,7 +2,7 @@ from sympy import Dummy
 from hivemind import DHT
 from hivemind.p2p import P2P, PeerID, StubBase
 
-from p2p_module_calling.server.module_servicer import ModuleServiceServicer
+from p2p_module_calling.server.module_servicer import ModuleServicer
 
 from p2p_module_calling.utils import serialize_tensors, deserialize_tensors
 
@@ -20,7 +20,7 @@ from typing import Dict, List, Union, Optional, Tuple, Any
 DUMMY = torch.Tensor([0], require_grad=True)
 
 def get_server_stub(p2p: P2P, server_peer_id: PeerID) -> StubBase:
-    return ModuleServiceServicer.get_stub(p2p, server_peer_id)
+    return ModuleServicer.get_stub(p2p, server_peer_id)
 
 
 class Client:
