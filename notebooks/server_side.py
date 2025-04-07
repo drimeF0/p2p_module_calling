@@ -42,6 +42,6 @@ model = MyModel()
 modules = {
     "model": model
 }
-servicer = ModuleServiceServicer(table, modules)
+servicer = ModuleServiceServicer(table)
 
 servicer.run()
