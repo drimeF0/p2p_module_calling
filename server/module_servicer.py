@@ -30,6 +30,10 @@ logger = logging.Logger(name="ModuleServiceServicer")
 
 class ModuleServiceServicer(mp.context.ForkProcess, ServicerBase):
 
+    err_message_module_not_found_forward = ModuleForwardResponse(error="Module not found", success=False, output_tensor_bytes=DEFAULT_ZERO_SAFETENSOR_BYTES)
+    err_message_module_not_found_backward = ModuleBackwardResponse(error="Module not found", success=False, grad_tensor_bytes=DEFAULT_ZERO_SAFETENSOR_BYTES)
+    err_message_input_or_grad_must_be_provided = ModuleBackwardResponse(error="Input and gradient tensors must be provided", success=False, grad_tensor_bytes=DEFAULT_ZERO_SAFETENSOR_BYTES)
+
     def __init__(self, dht: DHT, modules: Dict[str,torch.nn.Module]):
         self.dht = dht
         self.modules = modules
@@ -91,10 +95,20 @@ class ModuleServiceServicer(mp.context.ForkProcess, ServicerBase):
         else:
             logger.warning("ConnectionHandler shutdown had no effect, the process is already dead")
     
+
+    def _backward(self, tensors: Dict[str, torch.Tensor], grad_tensors: Dict[str, torch.Tensor]):
+        for key, tensor in tensors.items():
+            torch.autograd.backward(tensor, grad_tensors[key], retain_graph=False, create_graph=False)
+    
+    def get_module(self, module_id: str) -> Optional[torch.nn.Module]:
+        return self.modules.get(module_id)
+    
     async def rpc_forward_module(self, request: ModuleForwardRequest, context: P2PContext) -> ModuleForwardResponse:
-        module: Optional[torch.nn.Module] = self.modules.get(request.module_id)
+        module: Optional[torch.nn.Module] = self.get_module(request.module_id)
+
         if module is None:
-            return ModuleForwardResponse(error="Module not found", success=False, output_tensor_bytes=DEFAULT_ZERO_SAFETENSOR_BYTES)
+            return self.err_message_module_not_found
+        
         input_tensors: Dict[str, torch.Tensor] = serialize_tensors(request.input_tensor_bytes)
         output_tensors: Dict[str, torch.Tensor] = module(**input_tensors)
         output_tensor_bytes: bytes = deserialize_tensors(output_tensors)
@@ -110,7 +124,7 @@ class ModuleServiceServicer(mp.context.ForkProcess, ServicerBase):
         module_id = message.module_id
         module = self.modules.get(module_id)
         if module is None:
-            yield ModuleForwardResponse(error="Module not found", success=False, output_tensor_bytes=DEFAULT_ZERO_SAFETENSOR_BYTES)
+            yield self.err_message_module_not_found_forward
         else:
             output_tensors: Dict[str, torch.Tensor] = module(**tensor_dict)
             output_tensor_bytes: bytes = deserialize_tensors(output_tensors)
@@ -120,51 +134,59 @@ class ModuleServiceServicer(mp.context.ForkProcess, ServicerBase):
 
 
     async def rpc_backward_module(self, request: ModuleBackwardRequest, context: P2PContext) -> ModuleBackwardResponse:
-        module: Optional[torch.nn.Module] = self.modules.get(request.module_id)
 
+        module: Optional[torch.nn.Module] = self.get_module(request.module_id)
 
         if module in None:
-            return ModuleBackwardResponse(error="Module not found", success=False, grad_tensor_bytes=DEFAULT_ZERO_SAFETENSOR_BYTES)
+            return self.err_message_module_not_found_backward
 
         if request.input_tensor_bytes is None or request.grad_tensor_bytes is None:
-            return ModuleBackwardResponse(error="Input and gradient tensors must be provided", success=False, grad_tensor_bytes=DEFAULT_ZERO_SAFETENSOR_BYTES)
+            return self.err_message_input_or_grad_must_be_provided
+
         input_tensors: Dict[str, torch.Tensor] = serialize_tensors(request.input_tensor_bytes)
         grad_tensors: Dict[str, torch.Tensor] = serialize_tensors(request.grad_tensor_bytes)
         
         with torch.enable_grad():
             input_tensors = {input_key: (tensor.detach().requires_grad_(True) if tensor.is_floating_point() else tensor.detach()) for input_key, tensor in input_tensors.items()} #input tokens are not floating point and do not require grads
             output_tensors: Dict[str, torch.Tensor] = module(**input_tensors)
-            torch.autograd.backward(output_tensors, grad_tensors, retain_graph=False, create_graph=False)
+            self._backward(output_tensors, grad_tensors)
         
         grad_tensors = {input_key: tensor.grad if isinstance(tensor, torch.Tensor) else torch.zeros_like(tensor) for input_key, tensor in input_tensors.items()}
         grad_tensor_bytes: bytes = deserialize_tensors(grad_tensors)
         return ModuleBackwardResponse(success=True, grad_tensor_bytes=grad_tensor_bytes)
     
     async def rpc_backward_module_stream(self, requests: AsyncIterator[ModuleBackwardRequest], context: P2PContext) -> AsyncIterator[ModuleBackwardResponse]:
-        bytes_buffer_inputs: bytes = bytearray()  # Buffer to accumulate input tensor bytes
-        bytes_buffer_grads: bytes = bytearray()  # Buffer to accumulate gradient tensor bytes)
+        bytes_buffer_inputs: bytes = bytearray()
+        bytes_buffer_grads: bytes = bytearray()
+
+
         async for request in requests:
             if request.input_tensor_bytes is not None:  # Accumulate input tensor bytes if present
                 bytes_buffer_inputs.extend(request.input_tensor_bytes)
             if request.grad_tensor_bytes is not None:  # Accumulate gradient tensor bytes if present
                 bytes_buffer_grads.extend(request.grad_tensor_bytes)
-        module = self.modules.get(request.module_id)
+        
+        module = self.get_module(request.module_id)
         if module is None:
-            yield ModuleBackwardResponse(error="Module not found", success=False, grad_tensor_bytes=DEFAULT_ZERO_SAFETENSOR_BYTES)
+            yield self.err_message_module_not_found_backward
             return
-        if not bytes_buffer_inputs or not bytes_buffer_grads:  # Check if both buffers are non-empty
-            yield ModuleBackwardResponse(error="Missing input or gradient tensors", success=False, grad_tensor_bytes=DEFAULT_ZERO_SAFETENSOR_BYTES)
+        
+        if not bytes_buffer_inputs or not bytes_buffer_grads:
+            yield self.err_message_input_or_grad_must_be_provided
             return
-        input_tensors: Dict[str, torch.Tensor] = serialize_tensors(bytes_buffer_inputs)  # Deserialize input tensors from accumulated bytes
-        grad_tensors: Dict[str, torch.Tensor] = serialize_tensors(bytes_buffer_grads)  # Deserialize gradient tensors from accumulated bytes
+        
+        input_tensors: Dict[str, torch.Tensor] = serialize_tensors(bytes_buffer_inputs)
+        grad_tensors: Dict[str, torch.Tensor] = serialize_tensors(bytes_buffer_grads)
+        
         with torch.enable_grad():
             input_tensors = {input_key: (tensor.detach().requires_grad_(True) if tensor.is_floating_point() else tensor.detach()) for input_key, tensor in input_tensors.items()} #input tokens are not floating point and do not require grads
             output_tensors = module(**input_tensors)
 
-            torch.autograd.backward(output_tensors, grad_tensors=grad_tensors) 
+            self._backward(output_tensors, grad_tensors)
         grad_tensors: Dict[str, torch.Tensor] = {input_key: tensor.grad if isinstance(tensor, torch.Tensor) else torch.zeros_like(tensor) for input_key, tensor in input_tensors.items()}
-        grad_tensor_bytes: bytes = serialize_tensors(grad_tensors)  # Serialize gradient tensors to bytes
+        grad_tensor_bytes: bytes = serialize_tensors(grad_tensors)
         grad_tensor_chunks: List[bytes] = split_bytes(grad_tensor_bytes)
+
         for chunk in grad_tensor_chunks:
             yield ModuleBackwardResponse(success=True, grad_tensor_bytes=chunk)
 
