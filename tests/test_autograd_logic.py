@@ -5,6 +5,7 @@ from torch.autograd.function import once_differentiable
 
 from p2p_module_calling.client import Client, RemoteModule
 from p2p_module_calling.server import ModuleServicer
+from p2p_module_calling.constants import PUBLIC_INITIAL_PEERS
 
 from hivemind import DHT
 from hivemind.p2p import PeerID, P2P
@@ -26,7 +27,10 @@ class TestModel(torch.nn.Module):
 
 def server_main():
     dht = DHT(
-        start=True
+        start=True,
+        initial_peers=PUBLIC_INITIAL_PEERS,
+        use_auto_relay=True,
+        use_relay=True,
     )
     my_peer_id = dht.peer_id
     print(my_peer_id.to_string())
@@ -39,7 +43,10 @@ def server_main():
 
 def client_main():
     dht = DHT(
-        start=True
+        start=True,
+        initial_peers=PUBLIC_INITIAL_PEERS,
+        use_auto_relay=True,
+        use_relay=True,
     )
     p2p = asyncio.run(dht.replicate_p2p())
     my_peer_id = PeerID.from_base58(input("Enter peer id: "))
