@@ -1,6 +1,7 @@
 from sympy import Dummy
 from hivemind import DHT
 from hivemind.p2p import P2P, PeerID, StubBase
+from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 
 from p2p_module_calling.server.module_servicer import ModuleServicer
 
@@ -37,14 +38,14 @@ class Client:
     def forward(self, module_id: str, data: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         data_bytes: bytes = deserialize_tensors(data)
         message = ModuleForwardRequest(module_id=module_id, input_tensor_bytes=data_bytes)
-        result: ModuleForwardResponse = asyncio.run(self.stub.rpc_forward_module(message))
+        result: ModuleForwardResponse = RemoteExpertWorker.run_coroutine(self.stub.rpc_forward_module(message))
         return serialize_tensors(result.output_tensor_bytes)
     
     def backward(self, module_id: str, data: Dict[str, torch.Tensor], grad: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         data_bytes: bytes = deserialize_tensors(data)
         grad_bytes: bytes = deserialize_tensors(grad)
         message = ModuleBackwardRequest(module_id=module_id, input_tensor_bytes=data_bytes, grad_tensor_bytes=grad_bytes)
-        result: ModuleBackwardResponse = asyncio.run(self.stub.rpc_backward_module(message))
+        result: ModuleBackwardResponse = RemoteExpertWorker.run_coroutine(self.stub.rpc_backward_module(message))
         return serialize_tensors(result.output_tensor_bytes)
     
 

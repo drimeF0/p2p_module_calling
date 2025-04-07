@@ -22,11 +22,11 @@ class TestModel(torch.nn.Module):
         dictonary = {"result": result}
         return dictonary
 
-async def main():
+def main():
     dht = DHT(
         start=True
     )
-    p2p = await dht.replicate_p2p()
+    p2p = dht.dht.replicate_p2p()
     my_peer_id = dht.peer_id
     print(my_peer_id.to_string())
 
