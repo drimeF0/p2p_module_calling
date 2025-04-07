@@ -29,6 +29,7 @@ logger = logging.Logger(name="ModuleServiceServicer")
 class ModuleServiceServicer(mp.context.ForkProcess, ServicerBase):
 
     def __init__(self, dht: DHT):
+        super().__init__()
         self.dht = dht
         self._p2p: Optional[P2P] = None
 
