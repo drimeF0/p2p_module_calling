@@ -34,8 +34,7 @@ async def main():
     models = {"test_model": model}
 
     servicer = ModuleServicer(dht, models)
-    servicer.start()
-    
+    servicer.async_run()
     client = Client(p2p, my_peer_id)
     remote_module = RemoteModule(client, "test_model")
 
