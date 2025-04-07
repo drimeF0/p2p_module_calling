@@ -39,7 +39,7 @@ def client_main():
     dht = DHT(
         start=True
     )
-    p2p = dht.run_coroutine(dht.replicate_p2p())
+    p2p = asyncio.run(dht.replicate_p2p())
     my_peer_id = PeerID.from_base58(input("Enter peer id: "))
     client = Client(p2p, my_peer_id)
     remote_module = RemoteModule(client, "test_model")
