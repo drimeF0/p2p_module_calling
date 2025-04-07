@@ -34,6 +34,7 @@ class ModuleServicer(ServicerBase):
     err_message_input_or_grad_must_be_provided = ModuleBackwardResponse(error_message="Input and gradient tensors must be provided", success=False, grad_tensor_bytes=DEFAULT_ZERO_SAFETENSOR_BYTES)
 
     def __init__(self, dht: DHT, modules: Dict[str,torch.nn.Module]):
+        super().__init__()
         self.dht = dht
         self.modules = modules
 
