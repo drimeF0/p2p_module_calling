@@ -17,11 +17,15 @@ from torch.autograd.function import once_differentiable
 
 from typing import Dict, List, Union, Optional, Tuple, Any
 
+import asyncio
+
 DUMMY = torch.Tensor([0])
 DUMMY.requires_grad = True
 
 def get_server_stub(p2p: P2P, server_peer_id: PeerID) -> StubBase:
     return ModuleServicer.get_stub(p2p, server_peer_id)
+
+
 
 
 class Client:
@@ -33,14 +37,14 @@ class Client:
     def forward(self, module_id: str, data: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         data_bytes: bytes = deserialize_tensors(data)
         message = ModuleForwardRequest(module_id=module_id, input_tensor_bytes=data_bytes)
-        result: ModuleForwardResponse = self.stub.rpc_forward_module(message)
+        result: ModuleForwardResponse = asyncio.run_until_complete(self.stub.rpc_forward_module(message))
         return serialize_tensors(result.output_tensor_bytes)
     
     def backward(self, module_id: str, data: Dict[str, torch.Tensor], grad: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         data_bytes: bytes = deserialize_tensors(data)
         grad_bytes: bytes = deserialize_tensors(grad)
         message = ModuleBackwardRequest(module_id=module_id, input_tensor_bytes=data_bytes, grad_tensor_bytes=grad_bytes)
-        result: ModuleBackwardResponse = self.stub.rpc_backward_module(message)
+        result: ModuleBackwardResponse = asyncio.run_until_complete(self.stub.rpc_backward_module(message))
         return serialize_tensors(result.output_tensor_bytes)
     
 
