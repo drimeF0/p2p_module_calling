@@ -21,14 +21,13 @@ import torch
 
 from typing import Dict, List, Optional, AsyncIterator
 
-import multiprocessing as mp
 
 import logging
 
 logger = logging.Logger(name="ModuleServiceServicer")
 
 
-class ModuleServicer(mp.context.ForkProcess, ServicerBase):
+class ModuleServicer(ServicerBase):
 
     err_message_module_not_found_forward = ModuleForwardResponse(error_message="Module not found", success=False, output_tensor_bytes=DEFAULT_ZERO_SAFETENSOR_BYTES)
     err_message_module_not_found_backward = ModuleBackwardResponse(error_message="Module not found", success=False, grad_tensor_bytes=DEFAULT_ZERO_SAFETENSOR_BYTES)
@@ -40,61 +39,24 @@ class ModuleServicer(mp.context.ForkProcess, ServicerBase):
 
         self._p2p: Optional[P2P] = None
 
-        self._inner_pipe, self._outer_pipe = mp.Pipe(duplex=False)
-
-        self.ready = MPFuture()
     
 
     def run(self):
         torch.set_num_threads(1)    
         asyncio_loop = asyncio.new_event_loop()
         stop = asyncio.Event()
-        asyncio_loop.add_reader(self._inner_pipe.fileno(), stop.set)
     
         async def _run():
             try:
                 self._p2p = await self.dht.replicate_p2p()
                 await self.add_p2p_handlers(self._p2p, balanced=True)
-                self.ready.set_result(None)
             except Exception as e:
-                self.ready.set_exception(e)
+                print(e.with_traceback())
+        try:
+            asyncio_loop.run_until_complete(_run())
+        except KeyboardInterrupt:
+            asyncio_loop.run_until_complete(self.remove_p2p_handlers(self._p2p))
 
-            try:
-                await stop.wait()
-            finally:
-                await self.remove_p2p_handlers(self._p2p)
-            
-            try:
-                asyncio_loop.run_until_complete(_run())
-            except KeyboardInterrupt:
-                pass
-
-    
-    def run_in_background(self, await_ready: bool = True, timeout: Optional[float] = None) -> None:
-        """
-        Starts ConnectionHandler in a background process. If :await_ready:, this method will wait until
-        it is ready to process incoming requests or for :timeout: seconds max.
-        """
-        self.start()
-        if await_ready:
-            self.wait_until_ready(timeout)
-
-    def wait_until_ready(self, timeout: Optional[float] = None) -> None:
-        self.ready.result(timeout=timeout)
-
-
-    def shutdown(self):
-        if self.is_alive():
-            self._outer_pipe.send("_shutdown")
-            self.join(self.shutdown_timeout)
-            if self.is_alive():
-                logger.warning(
-                    "ConnectionHandler did not shut down within the grace period; terminating it the hard way"
-                )
-                self.terminate()
-        else:
-            logger.warning("ConnectionHandler shutdown had no effect, the process is already dead")
-    
 
     def _backward(self, tensors: Dict[str, torch.Tensor], grad_tensors: Dict[str, torch.Tensor]):
         for key, tensor in tensors.items():
