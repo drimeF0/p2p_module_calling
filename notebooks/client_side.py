@@ -28,8 +28,7 @@ async def main():
     p2p = await table.replicate_p2p()
     
     
-    peer_id_bytes = table.get("drime_peers").value
-    peer = PeerID(peer_id_bytes)
+    peer = PeerID.from_base58(input("peerID:"))
     client  = Client(p2p,peer)
     print(await client.test({"x":torch.randn(3,10)}))
 
