@@ -9,6 +9,7 @@ from p2p_module_calling.server import ModuleServicer
 from hivemind import DHT
 from hivemind.p2p import PeerID, P2P
 
+import threading
 
 import asyncio
 
@@ -22,27 +23,34 @@ class TestModel(torch.nn.Module):
         dictonary = {"result": result}
         return dictonary
 
-def main():
+
+def server_main():
     dht = DHT(
         start=True
     )
-    p2p = dht.dht.replicate_p2p()
     my_peer_id = dht.peer_id
     print(my_peer_id.to_string())
-
     model = TestModel()
     models = {"test_model": model}
-
     servicer = ModuleServicer(dht, models)
-    servicer.async_run()
+    servicer.run()
+
+def client_main():
+    dht = DHT(
+        start=True
+    )
+    p2p = dht.run_coroutine(dht.replicate_p2p())
+    my_peer_id = PeerID.from_base58(input("Enter peer id: "))
     client = Client(p2p, my_peer_id)
     remote_module = RemoteModule(client, "test_model")
-
     x = torch.ones(10, 10, requires_grad=False)
     result = remote_module({"x": x})["result"]
     result.sum().backward()
     print(result)
     print(result.grads)
 
-asyncio.run(main())
+if __name__ == "__main__":
+    server_thread = threading.Thread(target=server_main)
+    server_thread.start()
+    client_main()
     

@@ -43,7 +43,7 @@ class ModuleServicer(ServicerBase):
 
     def run(self):
         torch.set_num_threads(1)    
-        asyncio_loop = asyncio.new_event_loop()
+        asyncio_loop = asyncio.get_event_loop()
         try:
             asyncio_loop.run_until_complete(self.async_run())
         except KeyboardInterrupt:
