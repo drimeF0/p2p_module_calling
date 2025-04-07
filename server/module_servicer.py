@@ -30,9 +30,9 @@ logger = logging.Logger(name="ModuleServiceServicer")
 
 class ModuleServicer(mp.context.ForkProcess, ServicerBase):
 
-    err_message_module_not_found_forward = ModuleForwardResponse(error="Module not found", success=False, output_tensor_bytes=DEFAULT_ZERO_SAFETENSOR_BYTES)
-    err_message_module_not_found_backward = ModuleBackwardResponse(error="Module not found", success=False, grad_tensor_bytes=DEFAULT_ZERO_SAFETENSOR_BYTES)
-    err_message_input_or_grad_must_be_provided = ModuleBackwardResponse(error="Input and gradient tensors must be provided", success=False, grad_tensor_bytes=DEFAULT_ZERO_SAFETENSOR_BYTES)
+    err_message_module_not_found_forward = ModuleForwardResponse(error_message="Module not found", success=False, output_tensor_bytes=DEFAULT_ZERO_SAFETENSOR_BYTES)
+    err_message_module_not_found_backward = ModuleBackwardResponse(error_message="Module not found", success=False, grad_tensor_bytes=DEFAULT_ZERO_SAFETENSOR_BYTES)
+    err_message_input_or_grad_must_be_provided = ModuleBackwardResponse(error_message="Input and gradient tensors must be provided", success=False, grad_tensor_bytes=DEFAULT_ZERO_SAFETENSOR_BYTES)
 
     def __init__(self, dht: DHT, modules: Dict[str,torch.nn.Module]):
         self.dht = dht
