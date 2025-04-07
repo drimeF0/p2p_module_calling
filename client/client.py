@@ -32,19 +32,20 @@ class Client:
 
     def __init__(self, p2p: P2P, server_peer_id: PeerID):
         self.stub = get_server_stub(p2p, server_peer_id)
+        self.loop = asyncio.get_event_loop()
     
 
     def forward(self, module_id: str, data: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         data_bytes: bytes = deserialize_tensors(data)
         message = ModuleForwardRequest(module_id=module_id, input_tensor_bytes=data_bytes)
-        result: ModuleForwardResponse = asyncio.run_until_complete(self.stub.rpc_forward_module(message))
+        result: ModuleForwardResponse = self.loop.run_until_complete(self.stub.rpc_forward_module(message))
         return serialize_tensors(result.output_tensor_bytes)
     
     def backward(self, module_id: str, data: Dict[str, torch.Tensor], grad: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         data_bytes: bytes = deserialize_tensors(data)
         grad_bytes: bytes = deserialize_tensors(grad)
         message = ModuleBackwardRequest(module_id=module_id, input_tensor_bytes=data_bytes, grad_tensor_bytes=grad_bytes)
-        result: ModuleBackwardResponse = asyncio.run_until_complete(self.stub.rpc_backward_module(message))
+        result: ModuleBackwardResponse = self.loop.run_until_complete(self.stub.rpc_backward_module(message))
         return serialize_tensors(result.output_tensor_bytes)
     
 
