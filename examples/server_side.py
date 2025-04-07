@@ -2,7 +2,7 @@ from hivemind import DHT, get_dht_time
 import time
 
 from p2p_module_calling.server import ModuleServicer
-from p2p.module_calling.constants import PUBLIC_INITIAL_PEERS
+from p2p_module_calling.constants import PUBLIC_INITIAL_PEERS
 
 
 import asyncio
