@@ -44,4 +44,6 @@ async def main():
     result.sum().backward()
     print(result)
     print(result.grads)
+
+asyncio.run(main())
     
