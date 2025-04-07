@@ -14,7 +14,7 @@ import asyncio
 async def main():
     peers =  [
         # IPv4 DNS addresses
-        "/ip4/159.89.214.152/tcp/31337/p2p/QmedTaZXmULqwspJXz44SsPZyTNKxhnnFvYRajfH7MGhCY"
+        "/dns/bootstrap1.petals.dev/tcp/31337/p2p/QmedTaZXmULqwspJXz44SsPZyTNKxhnnFvYRajfH7MGhCY",
     ]
     
     table = DHT(
