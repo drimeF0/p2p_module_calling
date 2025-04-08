@@ -35,8 +35,7 @@ class ModuleServicer(ServicerBase, mp.context.ForkProcess):
     err_message_module_not_found_backward = ModuleBackwardResponse(error_message="Module not found", success=False, grad_tensor_bytes=DEFAULT_ZERO_SAFETENSOR_BYTES)
     err_message_input_or_grad_must_be_provided = ModuleBackwardResponse(error_message="Input and gradient tensors must be provided", success=False, grad_tensor_bytes=DEFAULT_ZERO_SAFETENSOR_BYTES)
 
-    def __init__(self, dht: DHT):
-        super().__init__()
+    def __init__(self, dht: DHT, modules: Dict[str,torch.nn.Module]):
         self.dht = dht
         self._p2p: Optional[P2P] = None
 
