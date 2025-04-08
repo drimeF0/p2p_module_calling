@@ -42,9 +42,8 @@ my_peer_id = PeerID.from_base58(input("Enter peer id: "))
 client = Client(p2p, my_peer_id)
 
 data = {"x": torch.randn(1,10)}
-data_bytes: bytes = deserialize_tensors(data)
-message = ModuleForwardRequest(module_id="test_model", input_tensor_bytes=data_bytes)
 
-result = asyncio.run(client.stub.rpc_forward_module(message))
-print(result)
+print(
+    client.forward("test_model", data)
+)
 
