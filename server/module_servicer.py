@@ -42,6 +42,8 @@ class ModuleServicer(ServicerBase, mp.context.ForkProcess):
         self._inner_pipe, self._outer_pipe = mp.Pipe(duplex=False)
 
         self.ready = MPFuture()
+
+        self.modules = modules
     
 
     def run(self):
