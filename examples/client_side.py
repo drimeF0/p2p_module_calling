@@ -25,6 +25,8 @@ async def main():
     )
     
     p2p = await table.replicate_p2p()
+
+    print(await p2p.list_peers())
     
     
     peer = PeerID.from_base58(input("peerID:"))

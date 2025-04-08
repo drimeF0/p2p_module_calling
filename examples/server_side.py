@@ -43,9 +43,9 @@ modules = {
 }
 servicer = ModuleServiceServicer(table)
 
-servicer.run()
-
 servicer.run_in_background()
+
+print(servicer.ready.result())
 
 while True:
     time.sleep(1)
