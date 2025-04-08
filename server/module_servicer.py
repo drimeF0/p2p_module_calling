@@ -49,7 +49,7 @@ class ModuleServicer(ServicerBase, mp.context.ForkProcess):
 
     def run(self):
         torch.set_num_threads(1)    
-        asyncio_loop = asyncio.get_event_loop()
+        asyncio_loop = switch_to_uvloop()
         stop = asyncio.Event()
         asyncio_loop.add_reader(self._inner_pipe.fileno(), stop.set)
     
