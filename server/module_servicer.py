@@ -1,6 +1,6 @@
 from p2p_module_calling.module_service import (
-    ModuleCallRequest,
-    ModuleCallResponse
+    TestRequest,
+    TestResponse
 )
 
 from p2p_module_calling.utils import serialize_tensors, deserialize_tensors, DEFAULT_ZERO_SAFETENSOR_BYTES
@@ -28,10 +28,9 @@ logger = logging.Logger(name="ModuleServiceServicer")
 
 class ModuleServiceServicer(mp.context.ForkProcess, ServicerBase):
 
-    def __init__(self, dht: DHT, modules: Dict[str,torch.nn.Module]):
+    def __init__(self, dht: DHT):
+        super().__init__()
         self.dht = dht
-        self.modules = modules
-
         self._p2p: Optional[P2P] = None
 
         self._inner_pipe, self._outer_pipe = mp.Pipe(duplex=False)
@@ -62,8 +61,6 @@ class ModuleServiceServicer(mp.context.ForkProcess, ServicerBase):
                 asyncio_loop.run_until_complete(_run())
             except KeyboardInterrupt:
                 pass
-
-    
     def run_in_background(self, await_ready: bool = True, timeout: Optional[float] = None) -> None:
         """
         Starts ConnectionHandler in a background process. If :await_ready:, this method will wait until
@@ -89,11 +86,7 @@ class ModuleServiceServicer(mp.context.ForkProcess, ServicerBase):
         else:
             logger.warning("ConnectionHandler shutdown had no effect, the process is already dead")
     
-    async def rpc_call_module(self, request: ModuleCallRequest, context: P2PContext) -> ModuleCallResponse:
-        module: Optional[torch.nn.Module] = self.modules.get(request.module_id)
-        if module is None:
-            return ModuleCallResponse(error="Module not found", success=False, output_tensor_bytes=DEFAULT_ZERO_SAFETENSOR_BYTES)
-        input_tensors: Dict[str, torch.Tensor] = serialize_tensors(request.input_tensor_bytes)
-        output_tensors: Dict[str, torch.Tensor] = module(**input_tensors)
-        output_tensor_bytes: bytes = deserialize_tensors(output_tensors)
-        return ModuleCallResponse(success=True, output_tensor_bytes=output_tensor_bytes)
+    async def rpc_call_module(self, request: TestRequest, context: P2PContext) -> TestResponse:
+        tensor_dict: Dict[str, torch.Tensor] = serialize_tensors(request.input_tensor_bytes)
+        print(f"got dict: {tensor_dict}")
+        return TestResponse(output_tensor_bytes=request.input_tensor_bytes)
