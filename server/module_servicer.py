@@ -14,6 +14,8 @@ from hivemind.utils.asyncio import switch_to_uvloop #Switch to faster uvloop eve
 from hivemind.dht import DHT
 from hivemind.utils import MPFuture
 
+import multiprocessing as mp
+
 
 import asyncio
 
@@ -27,35 +29,70 @@ import logging
 logger = logging.Logger(name="ModuleServiceServicer")
 
 
-class ModuleServicer(ServicerBase):
+class ModuleServicer(ServicerBase, mp.context.ForkProcess):
 
     err_message_module_not_found_forward = ModuleForwardResponse(error_message="Module not found", success=False, output_tensor_bytes=DEFAULT_ZERO_SAFETENSOR_BYTES)
     err_message_module_not_found_backward = ModuleBackwardResponse(error_message="Module not found", success=False, grad_tensor_bytes=DEFAULT_ZERO_SAFETENSOR_BYTES)
     err_message_input_or_grad_must_be_provided = ModuleBackwardResponse(error_message="Input and gradient tensors must be provided", success=False, grad_tensor_bytes=DEFAULT_ZERO_SAFETENSOR_BYTES)
 
-    def __init__(self, dht: DHT, modules: Dict[str,torch.nn.Module]):
+    def __init__(self, dht: DHT):
+        super().__init__()
         self.dht = dht
-        self.modules = modules
-
         self._p2p: Optional[P2P] = None
 
+        self._inner_pipe, self._outer_pipe = mp.Pipe(duplex=False)
+
+        self.ready = MPFuture()
     
 
     def run(self):
         torch.set_num_threads(1)    
         asyncio_loop = asyncio.get_event_loop()
-        try:
-            asyncio_loop.run_until_complete(self.async_run())
-        except KeyboardInterrupt:
-            asyncio_loop.run_until_complete(self.remove_p2p_handlers(self._p2p))
+        stop = asyncio.Event()
+        asyncio_loop.add_reader(self._inner_pipe.fileno(), stop.set)
     
-
-    async def async_run(self):
+        async def _run():
+            try:
+                self._p2p = await self.dht.replicate_p2p()
+                await self.add_p2p_handlers(self._p2p, balanced=True)
+                self.ready.set_result(True)
+            except Exception as e:
+                logger.error("ModuleServiceServicer failed to start:", exc_info=True)
+                self.ready.set_exception(e)
+            try:
+                await stop.wait()
+            finally:
+                await self.remove_p2p_handlers(self._p2p)
+            
         try:
-            self._p2p = await self.dht.replicate_p2p()
-            await self.add_p2p_handlers(self._p2p, balanced=True)
-        except Exception as e:
-            print(e.with_traceback())
+            asyncio_loop.run_until_complete(_run())
+        except KeyboardInterrupt:
+            pass
+    
+    def run_in_background(self, await_ready: bool = True, timeout: Optional[float] = None) -> Any:
+        """
+        Starts ConnectionHandler in a background process. If :await_ready:, this method will wait until
+        it is ready to process incoming requests or for :timeout: seconds max.
+        """
+        self.start()
+        if await_ready:
+            return self.wait_until_ready(timeout)
+
+    def wait_until_ready(self, timeout: Optional[float] = None) -> Any:
+        return self.ready.result(timeout=timeout)
+
+
+    def shutdown(self):
+        if self.is_alive():
+            self._outer_pipe.send("_shutdown")
+            self.join(self.shutdown_timeout)
+            if self.is_alive():
+                logger.warning(
+                    "ConnectionHandler did not shut down within the grace period; terminating it the hard way"
+                )
+                self.terminate()
+        else:
+            logger.warning("ConnectionHandler shutdown had no effect, the process is already dead")
 
 
     def _backward(self, tensors: Dict[str, torch.Tensor], grad_tensors: Dict[str, torch.Tensor]):
