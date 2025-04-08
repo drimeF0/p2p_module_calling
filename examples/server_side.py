@@ -32,7 +32,7 @@ print(dht.get_visible_maddrs())
 model = TestModel()
 models = {"test_model": model}
 servicer = ModuleServicer(dht, models)
-servicer.run()
+print(servicer.run_in_background())
 
 while True:
     time.sleep(1)
