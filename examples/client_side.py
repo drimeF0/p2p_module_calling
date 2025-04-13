@@ -2,9 +2,7 @@ import torch
 from typing import Dict, Tuple, Optional
 
 from p2p_module_calling.client import Client, RemoteModule
-from p2p_module_calling.server import ModuleServicer
 from p2p_module_calling.constants import PUBLIC_INITIAL_PEERS
-from p2p_module_calling.utils import serialize_tensors, deserialize_tensors
 
 
 
@@ -16,6 +14,7 @@ from hivemind import DHT
 from hivemind.p2p import PeerID, P2P
 
 
+import logging 
 
 import threading
 
@@ -31,19 +30,22 @@ class TestModel(torch.nn.Module):
         dictonary = {"result": result}
         return dictonary
 
+
+
 dht = DHT(
     start=True,
     initial_peers=PUBLIC_INITIAL_PEERS,
     use_auto_relay=True,
     use_relay=True,
 )
-p2p = asyncio.run(dht.replicate_p2p())
 my_peer_id = PeerID.from_base58(input("Enter peer id: "))
-client = Client(p2p, my_peer_id)
+client = Client(dht, my_peer_id)
+remote_module = RemoteModule(client, "test_model")
 
-data = {"x": torch.randn(1,10)}
 
-print(
-    client.forward("test_model", data)
-)
-
+with torch.enable_grad():
+    data = {"x": torch.randn(1,10)}
+    result = remote_module(data)
+    print(result)
+    result["result"].backward()
+    print(result)

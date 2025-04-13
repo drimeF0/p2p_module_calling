@@ -1,1 +1,2 @@
 from p2p_module_calling.client.client import Client, RemoteModule
+from p2p_module_calling.client.remote_module_worker import RemoteModuleWorker

@@ -29,7 +29,7 @@ dht = DHT(
 my_peer_id = dht.peer_id
 print(my_peer_id.to_string())
 print(dht.get_visible_maddrs())
-model = TestModel()
+model = TestModel().requires_grad_(True)
 models = {"test_model": model}
 servicer = ModuleServicer(dht, models)
 print(servicer.run_in_background())

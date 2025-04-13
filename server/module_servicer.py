@@ -110,9 +110,9 @@ class ModuleServicer(ServicerBase, mp.context.ForkProcess):
         if module is None:
             return self.err_message_module_not_found
         
-        input_tensors: Dict[str, torch.Tensor] = serialize_tensors(request.input_tensor_bytes)
+        input_tensors: Dict[str, torch.Tensor] = deserialize_tensors(request.input_tensor_bytes)
         output_tensors: Dict[str, torch.Tensor] = module(**input_tensors)
-        output_tensor_bytes: bytes = deserialize_tensors(output_tensors)
+        output_tensor_bytes: bytes = serialize_tensors(output_tensors)
         return ModuleForwardResponse(success=True, output_tensor_bytes=output_tensor_bytes)
     
 
@@ -121,14 +121,14 @@ class ModuleServicer(ServicerBase, mp.context.ForkProcess):
         async for message in requests:
             byte_data = message.input_tensor_bytes
             bytes_buffer.append(byte_data)
-        tensor_dict: Dict[str,torch.Tensor] = serialize_tensors(bytes(bytes_buffer))
+        tensor_dict: Dict[str,torch.Tensor] = deserialize_tensors(bytes(bytes_buffer))
         module_id = message.module_id
         module = self.modules.get(module_id)
         if module is None:
             yield self.err_message_module_not_found_forward
         else:
             output_tensors: Dict[str, torch.Tensor] = module(**tensor_dict)
-            output_tensor_bytes: bytes = deserialize_tensors(output_tensors)
+            output_tensor_bytes: bytes = serialize_tensors(output_tensors)
             tensor_chunks: List[bytes] = split_bytes(output_tensor_bytes)
             for chunk in tensor_chunks:
                 yield ModuleForwardResponse(success=True, output_tensor_bytes=chunk)
@@ -144,8 +144,8 @@ class ModuleServicer(ServicerBase, mp.context.ForkProcess):
         if request.input_tensor_bytes is None or request.grad_tensor_bytes is None:
             return self.err_message_input_or_grad_must_be_provided
 
-        input_tensors: Dict[str, torch.Tensor] = serialize_tensors(request.input_tensor_bytes)
-        grad_tensors: Dict[str, torch.Tensor] = serialize_tensors(request.grad_tensor_bytes)
+        input_tensors: Dict[str, torch.Tensor] = deserialize_tensors(request.input_tensor_bytes)
+        grad_tensors: Dict[str, torch.Tensor] = deserialize_tensors(request.grad_tensor_bytes)
         
         with torch.enable_grad():
             input_tensors = {input_key: (tensor.detach().requires_grad_(True) if tensor.is_floating_point() else tensor.detach()) for input_key, tensor in input_tensors.items()} #input tokens are not floating point and do not require grads
@@ -153,7 +153,7 @@ class ModuleServicer(ServicerBase, mp.context.ForkProcess):
             self._backward(output_tensors, grad_tensors)
         
         grad_tensors = {input_key: tensor.grad if isinstance(tensor, torch.Tensor) else torch.zeros_like(tensor) for input_key, tensor in input_tensors.items()}
-        grad_tensor_bytes: bytes = deserialize_tensors(grad_tensors)
+        grad_tensor_bytes: bytes = serialize_tensors(grad_tensors)
         return ModuleBackwardResponse(success=True, grad_tensor_bytes=grad_tensor_bytes)
     
     async def rpc_backward_module_stream(self, requests: AsyncIterator[ModuleBackwardRequest], context: P2PContext) -> AsyncIterator[ModuleBackwardResponse]:
@@ -185,7 +185,7 @@ class ModuleServicer(ServicerBase, mp.context.ForkProcess):
 
             self._backward(output_tensors, grad_tensors)
         grad_tensors: Dict[str, torch.Tensor] = {input_key: tensor.grad if isinstance(tensor, torch.Tensor) else torch.zeros_like(tensor) for input_key, tensor in input_tensors.items()}
-        grad_tensor_bytes: bytes = serialize_tensors(grad_tensors)
+        grad_tensor_bytes: bytes = deserialize_tensors(grad_tensors)
         grad_tensor_chunks: List[bytes] = split_bytes(grad_tensor_bytes)
 
         for chunk in grad_tensor_chunks:
