@@ -1,3 +1,15 @@
-from p2p_module_calling.utils.tensor_utils import deserialize_tensors, serialize_tensors, DEFAULT_ZERO_SAFETENSOR_BYTES
+from p2p_module_calling.utils.tensor_utils import (
+    deserialize_tensors,
+    serialize_tensors,
+    DEFAULT_ZERO_SAFETENSOR_BYTES,
+)
 from p2p_module_calling.utils.bytes_utils import split_bytes
-from p2p_module_calling.utils.dict_utils import flatten, fill_dict, unfill_dict
+from p2p_module_calling.utils.dict_utils import (
+    unpack_dict,
+    pack_to_dict,
+    values_from_dict,
+    # backward-compatible aliases
+    flatten,
+    fill_dict,
+    unfill_dict,
+)

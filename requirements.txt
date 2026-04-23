@@ -1,7 +1,6 @@
 torch
-git+https://github.com/learning-at-home/hivemind.git
-grpcio
-grpcio-tools
---pre betterproto
---pre betterproto[compiler]
-safetensors
+git+https://github.com/learning-at-home/hivemind.git@master
+grpcio>=1.56.0
+grpcio-tools>=1.56.0
+betterproto[compiler]>=2.0.0b6
+safetensors>=0.3.0

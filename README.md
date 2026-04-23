@@ -1,30 +1,106 @@
-# Running the Project with Docker
+# p2p_module_calling
 
-This section provides instructions to build and run the project using Docker.
+Peer-to-peer remote PyTorch module execution with full autograd support.
 
-## Prerequisites
+This library lets you call a `torch.nn.Module` running on a different machine
+as if it were local — gradients flow back transparently through the P2P network
+thanks to a custom `torch.autograd.Function`.
 
-- Ensure Docker and Docker Compose are installed on your system.
-- The project uses Python 3.9 as specified in the Dockerfile.
+## Architecture
 
-## Build and Run Instructions
+| Component | Description |
+|---|---|
+| **Server** (`ModuleServicer`) | Hosts PyTorch modules in a subprocess, exposes P2P RPC endpoints for forward/backward. |
+| **Client** (`Client` / `RemoteModule`) | Connects to a remote server. `RemoteModule` wraps the RPC as a `torch.nn.Module` with autograd. |
+| **Protocol** (`module_service_proto.proto`) | Protobuf messages compiled via `betterproto`. |
+| **RemoteModuleWorker** | Background `uvloop` thread bridging sync → async for the P2P stack. |
 
-1. Build the Docker image and start the services using Docker Compose:
+## Installation
 
-   ```bash
-   docker-compose up --build
-   ```
+```bash
+pip install -e .
+```
 
-2. The application will be accessible at `http://localhost:8000`.
+Or, with the raw requirements:
+
+```bash
+pip install -r requirements.txt
+```
+
+Then compile the protobuf:
+
+```bash
+protoc --python_betterproto_out=module_service module_service_proto.proto
+```
+
+## Quick Start
+
+### 1. Server — host a model
+
+```python
+import torch
+from hivemind import DHT
+from p2p_module_calling.server import ModuleServicer
+
+model = torch.nn.Linear(10, 10)
+
+dht = DHT(start=False, use_auto_relay=True, use_relay=True, use_ipfs=True)
+dht.run_in_background(timeout=60)
+
+print(f"My Peer ID: {dht.peer_id.to_string()}")
+
+servicer = ModuleServicer(dht, {"my_model": model})
+servicer.run_in_background()
+servicer.join()  # blocks
+```
+
+### 2. Client — call it remotely
+
+```python
+import torch
+from hivemind import DHT
+from hivemind.p2p import PeerID
+from p2p_module_calling.client import Client, RemoteModule
+
+dht = DHT(start=False, use_auto_relay=True, use_relay=True, use_ipfs=True)
+dht.run_in_background(timeout=60)
+
+server_peer_id = PeerID.from_base58("<SERVER_PEER_ID>")
+
+with Client(dht, server_peer_id) as client:
+    remote = RemoteModule(client, "my_model")
+    x = torch.ones(1, 10, requires_grad=True)
+    y = remote({"x": x})
+    y["result"].sum().backward()
+    print(x.grad)  # gradient flows back from the remote server!
+```
 
 ## Configuration
 
-- The application exposes port `8000` as defined in the Docker Compose file.
-- If required, you can define environment variables in a `.env` file and uncomment the `env_file` line in the `docker-compose.yml` file.
+Set initial peers for DHT bootstrap via the `P2P_INITIAL_PEERS` environment variable:
 
-## Notes
+```bash
+export P2P_INITIAL_PEERS="/ip4/1.2.3.4/tcp/31337/p2p/QmFooBar"
+```
 
-- The `requirements.txt` file lists the Python dependencies for the project.
-- The `module_service_proto.proto` file is included for protocol buffer definitions.
+## Running Tests
 
-For further details, refer to the project documentation or contact the maintainers.
+```bash
+pytest tests/ -v
+```
+
+> **Note:** Integration tests require P2P networking. They may hang or fail in
+> isolated environments without connectivity.
+
+## Project Structure
+
+```
+p2p_module_calling/
+├── client/              # Client, RemoteModule, RemoteModuleWorker
+├── server/              # ModuleServicer
+├── module_service/      # Auto-generated protobuf stubs (betterproto)
+├── utils/               # Tensor serialization, byte splitting, dict helpers
+├── constants.py         # Shared configuration (initial peers, etc.)
+├── examples/            # Standalone example scripts
+└── tests/               # Integration tests
+```
