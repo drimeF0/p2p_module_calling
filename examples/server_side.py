@@ -9,30 +9,43 @@ import asyncio
 
 import torch
 
+import logging
+
+
 
 class TestModel(torch.nn.Module):
-
     def __init__(self):
         super().__init__()
-        self.linear = torch.nn.Linear(10, 10)
+        self.mlp = torch.nn.Linear(10,10)
+    
     def forward(self, x):
-        result = self.linear(x)
+        result = self.mlp(x)
         dictonary = {"result": result}
         return dictonary
 
+
 dht = DHT(
-    start=True,
-    initial_peers=PUBLIC_INITIAL_PEERS,
+    start=False,
+    #initial_peers=PUBLIC_INITIAL_PEERS,
     use_auto_relay=True,
     use_relay=True,
+    use_ipfs=True,
 )
+dht.run_in_background(timeout=60)
 my_peer_id = dht.peer_id
 print(my_peer_id.to_string())
 print(dht.get_visible_maddrs())
-model = TestModel().requires_grad_(True)
+model = TestModel().requires_grad_(False)
 models = {"test_model": model}
+
+with torch.enable_grad():
+    data = {"x": torch.ones(1, 10)}
+    data["x"].requires_grad = True
+    result = model(**data)
+    result['result'].sum().backward()  # Sum the result to get a scalar for backpropagation
+    print(data["x"].grad)
+
 servicer = ModuleServicer(dht, models)
 print(servicer.run_in_background())
 
-while True:
-    time.sleep(1)
+servicer.join()

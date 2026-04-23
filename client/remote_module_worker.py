@@ -8,6 +8,10 @@ from hivemind.utils import switch_to_uvloop
 
 import logging
 
+
+import stackprinter
+#stackprinter.set_excepthook(style='darkbg2')  # for jupyter notebooks try style='lightbg'
+
 class RemoteModuleWorker:
     """Local thread for managing async tasks related to RemoteModule"""
 
@@ -43,4 +47,10 @@ class RemoteModuleWorker:
             logging.debug(task)
 
         future = asyncio.run_coroutine_threadsafe(coro, loop)
-        return future if return_future else future.result()
+        if return_future:
+            return future
+        else:
+            try:
+                return future.result()
+            except Exception as e:
+                raise e

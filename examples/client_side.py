@@ -18,34 +18,31 @@ import logging
 
 import threading
 
+import torchvision
+
 import asyncio
 
-class TestModel(torch.nn.Module):
 
-    def __init__(self):
-        super().__init__()
-        self.linear = torch.nn.Linear(10, 10)
-    def forward(self, x):
-        result = self.linear(x)
-        dictonary = {"result": result}
-        return dictonary
 
 
 
 dht = DHT(
-    start=True,
-    initial_peers=PUBLIC_INITIAL_PEERS,
+    start=False,
+    #initial_peers=PUBLIC_INITIAL_PEERS,
     use_auto_relay=True,
     use_relay=True,
+    use_ipfs=True,
 )
+dht.run_in_background(timeout=60)
 my_peer_id = PeerID.from_base58(input("Enter peer id: "))
 client = Client(dht, my_peer_id)
 remote_module = RemoteModule(client, "test_model")
-
-
+mse_loss = torch.nn.MSELoss()
+remote_module.requires_grad_(True)
 with torch.enable_grad():
-    data = {"x": torch.randn(1,10)}
+    data = {"x": torch.ones(1, 10)}
+    data["x"].requires_grad = True
     result = remote_module(data)
-    print(result)
-    result["result"].backward()
-    print(result)
+    print(data)
+    result.sum().backward()
+    print(data["x"].grad)
